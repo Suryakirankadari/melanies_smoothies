@@ -1,51 +1,57 @@
-# Import python packages
 import streamlit as st
 from snowflake.snowpark.functions import col
+from snowflake.snowpark.context import get_active_session
+import requests
+
 # Write directly to the app
 st.title(":cup_with_straw: Customize Your Smoothie! :cup_with_straw:")
-st. write(
-    """ Choose the fruits you want in your custom Smoothie!"""
-)
+st.write("Choose the fruits you want in your custom Smoothie!")
 
-
-
-
+# Text input for the name on the smoothie
 name_on_order = st.text_input('Name on Smoothie:')
-st.write("The name on your Smoothie will be :", name_on_order)
+st.write("The name on your Smoothie will be:", name_on_order)
 
+# Get the active Snowflake session
 session = get_active_session()
-my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'))
-# st.dataframe(data=my_dataframe, use_container_width=True)
 
+# Fetch available fruit options from Snowflake
+fruit_df = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME')).to_pandas()
+fruit_list = fruit_df['FRUIT_NAME'].tolist()
+
+# Multiselect for choosing ingredients
 ingredients_list = st.multiselect(
-    'Choose up to 5 ingredients:'
-    ,my_dataframe
-    ,max_selections=5
+    'Choose up to 5 ingredients:',
+    fruit_list,
+    max_selections=5
 )
 
 if ingredients_list:
-    
-    ingredients_string = ''
+    # Join selected ingredients into a single string
+    ingredients_string = ' '.join(ingredients_list)
 
-    for fruit_chosen in ingredients_list:
-        ingredients_string += fruit_chosen + ' '
-
-   # st.write(ingredients_string)
-
-    
-    my_insert_stmt = """ insert into smoothies.public.orders(ingredients,name_on_order)
-            values ('""" + ingredients_string + """','"""+name_on_order+"""')""" 
+    # Prepare the SQL insert statement
+    my_insert_stmt = f"""
+    INSERT INTO smoothies.public.orders (ingredients, name_on_order)
+    VALUES ('{ingredients_string}', '{name_on_order}')
+    """
 
     st.write(my_insert_stmt)
-    #st.stop()
-     
+    
+    # Button to submit the order
     time_to_insert = st.button('Submit Order')
     
-
     if time_to_insert:
-       session.sql(my_insert_stmt).collect()
-       st.success('Your Smoothie is ordered!', icon="✅")
+        try:
+            session.sql(my_insert_stmt).collect()
+            st.success('Your Smoothie is ordered!', icon="👍")
+        except Exception as e:
+            st.error(f'Something went wrong: {e}')
 
-import requests
+# API request to Fruityvice
 fruityvice_response = requests.get("https://fruityvice.com/api/fruit/watermelon")
-st.text(fruityvice_response)
+
+if fruityvice_response.status_code == 200:
+    fruityvice_data = fruityvice_response.json()
+    st.json(fruityvice_data)
+else:
+    st.error("Failed to fetch data from Fruityvice API.")
