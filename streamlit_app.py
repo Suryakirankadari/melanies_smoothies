@@ -1,7 +1,21 @@
-import streamlit as st
-from snowflake.snowpark.functions import col
 
+import streamlit as st
+from snowflake.snowpark.session import Session
+from snowflake.snowpark.functions import col
 import requests
+
+# Function to get the active Snowflake session
+def get_active_session():
+    connection_parameters = {
+        "account": "DFWGPVI-YR76623",
+        "user": "Suryakiran",
+        "password": "248203@sK",
+        "role": "SYSADMIN",
+        "warehouse": "COMPUTE_WH",
+        "database": "SMOOTHIES",
+        "schema": "PUBLIC"
+    }
+    return Session.builder.configs(connection_parameters).create()
 
 # Write directly to the app
 st.title(":cup_with_straw: Customize Your Smoothie! :cup_with_straw:")
@@ -27,7 +41,7 @@ ingredients_list = st.multiselect(
 
 if ingredients_list:
     # Join selected ingredients into a single string
-    ingredients_string = ' '.join(ingredients_list)
+    ingredients_string = ', '.join(ingredients_list)
 
     # Prepare the SQL insert statement
     my_insert_stmt = f"""
