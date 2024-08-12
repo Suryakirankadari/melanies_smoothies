@@ -63,9 +63,5 @@ if ingredients_list:
 
 # API request to Fruityvice
 fruityvice_response = requests.get("https://fruityvice.com/api/fruit/watermelon")
-
-if fruityvice_response.status_code == 200:
-    fruityvice_data = fruityvice_response.json()
-    st.json(fruityvice_data)
-else:
-    st.error("Failed to fetch data from Fruityvice API.")
+    #st.text(fruityvice_response.json())
+fv_df = st.dataframe(data=fruitvice_response.json(),use_container_width=True)
